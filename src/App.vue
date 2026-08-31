@@ -1,0 +1,248 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { FileSpreadsheet, LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
+import SeriesChart from '@/components/SeriesChart.vue'
+import SeriesSidebar from '@/components/SeriesSidebar.vue'
+import { useCsvData } from '@/composables/useCsvData'
+
+const {
+  activeSeries,
+  dataset,
+  error,
+  importFile,
+  isLoading,
+  reset,
+  setAllSeriesVisibility,
+  setSeriesVisibility,
+  visibleSeries,
+} = useCsvData()
+
+const fileName = computed(() => dataset.value?.fileName ?? null)
+const rowCount = computed(() => dataset.value?.rowCount ?? 0)
+const allSeries = computed(() => dataset.value?.series ?? [])
+const hoveredIndex = ref<number | null>(null)
+const zoomRange = ref<{ min: number; max: number } | null>(null)
+const selectedRange = ref<{ min: number; max: number } | null>(null)
+const selectAllWarningCount = ref<number | null>(null)
+const maxIndex = computed(() => Math.max(0, (allSeries.value[0]?.points.length ?? 1) - 1))
+const currentZoomRange = computed(() => zoomRange.value ?? { min: 0, max: maxIndex.value })
+const zoomSpan = computed(() => currentZoomRange.value.max - currentZoomRange.value.min)
+const maximumPanOffset = computed(() => Math.max(0, maxIndex.value - zoomSpan.value))
+const isZoomed = computed(() => zoomSpan.value < maxIndex.value)
+
+function showUploadError(message: string) {
+  error.value = message
+}
+
+function resetData() {
+  hoveredIndex.value = null
+  zoomRange.value = null
+  selectedRange.value = null
+  selectAllWarningCount.value = null
+  reset()
+}
+
+async function importData(file: File) {
+  hoveredIndex.value = null
+  zoomRange.value = null
+  selectedRange.value = null
+  selectAllWarningCount.value = null
+  await importFile(file)
+}
+
+function handleToggleAll(visible: boolean) {
+  if (!visible) {
+    setAllSeriesVisibility(false)
+    return
+  }
+
+  const newlySelected = allSeries.value.filter((series) => !visibleSeries.value[series.id]).length
+  if (newlySelected > 10) {
+    selectAllWarningCount.value = newlySelected
+    return
+  }
+  setAllSeriesVisibility(true)
+}
+
+function confirmSelectAll() {
+  setAllSeriesVisibility(true)
+  selectAllWarningCount.value = null
+}
+
+function zoomBy(factor: number, anchorIndex?: number) {
+  const maximum = maxIndex.value
+  if (maximum < 1) return
+
+  const current = zoomRange.value ?? { min: 0, max: maximum }
+  const span = current.max - current.min
+  const nextSpan = Math.min(maximum, Math.max(1, span / factor))
+  const anchor = Math.max(current.min, Math.min(current.max, anchorIndex ?? (current.min + current.max) / 2))
+  const anchorRatio = span === 0 ? 0.5 : (anchor - current.min) / span
+  let min = anchor - nextSpan * anchorRatio
+  let max = min + nextSpan
+
+  if (min < 0) {
+    max -= min
+    min = 0
+  }
+  if (max > maximum) {
+    min -= max - maximum
+    max = maximum
+  }
+  zoomRange.value = { min: Math.floor(Math.max(0, min)), max: Math.ceil(max) }
+}
+
+function resetZoom() {
+  zoomRange.value = null
+  selectedRange.value = null
+}
+
+function panTo(offset: number) {
+  const min = Math.max(0, Math.min(maximumPanOffset.value, Math.round(offset)))
+  zoomRange.value = { min, max: min + zoomSpan.value }
+}
+
+function handlePan(event: Event) {
+  panTo(Number((event.target as HTMLInputElement).value))
+}
+
+function applySelection(range: { min: number; max: number }) {
+  selectedRange.value = range
+  zoomRange.value = range
+}
+</script>
+
+<template>
+  <main class="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+    <header class="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div class="flex items-center gap-3">
+        <div class="rounded-xl bg-slate-900 p-2 text-white"><LineChart :size="22" aria-hidden="true" /></div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight">Local CSV Visualizer</h1>
+          <p class="text-xs text-slate-500">Browser-only analysis. Your data stays on this device.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button class="chart-toggle" type="button" title="Zoom in" :disabled="maxIndex < 1" @click="zoomBy(1.25)"><Plus :size="15" /> Zoom in</button>
+          <button class="chart-toggle" type="button" title="Zoom out" :disabled="maxIndex < 1" @click="zoomBy(0.8)"><Minus :size="15" /> Zoom out</button>
+          <button class="chart-toggle" type="button" title="Reset zoom" :disabled="!zoomRange" @click="resetZoom"><RotateCcw :size="15" /> Reset zoom</button>
+        </div>
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="!selectedRange"
+          @click="selectedRange = null"
+        ><X :size="15" /> Clear selection</button>
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          :disabled="!dataset"
+          @click="resetData"
+        ><RotateCcw :size="15" /> Reset data</button>
+      </div>
+    </header>
+
+    <p v-if="error" class="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 sm:mx-6" role="alert">
+      {{ error }}
+    </p>
+
+    <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <SeriesSidebar
+        :series="allSeries"
+        :visibility="visibleSeries"
+        :file-name="fileName"
+        :row-count="rowCount"
+        :is-loading="isLoading"
+        @import="importData"
+        @invalid="showUploadError"
+        @toggle="setSeriesVisibility"
+        @toggle-all="handleToggleAll"
+      />
+
+      <section class="min-w-0 flex-1 p-4 sm:p-6">
+        <div v-if="dataset && activeSeries.length && isZoomed" class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div class="mb-2 flex items-center justify-between gap-4 text-xs font-medium text-slate-500">
+            <span>Timeline position</span>
+            <span>{{ currentZoomRange.min.toLocaleString() }} - {{ currentZoomRange.max.toLocaleString() }}</span>
+          </div>
+          <input
+            class="w-full accent-sky-700"
+            type="range"
+            min="0"
+            :max="maximumPanOffset"
+            step="1"
+            :value="currentZoomRange.min"
+            aria-label="Pan chart timeline"
+            @input="handlePan"
+          />
+        </div>
+        <div v-if="isLoading" class="grid min-h-80 place-items-center rounded-2xl border border-slate-200 bg-white">
+          <p class="text-sm font-medium text-slate-600">Reading and parsing CSV locally...</p>
+        </div>
+
+        <div v-else-if="!dataset" class="grid min-h-96 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <div>
+            <div class="mx-auto grid size-12 place-items-center rounded-2xl bg-sky-100 text-sky-700"><FileSpreadsheet :size="24" /></div>
+            <h2 class="mt-4 text-lg font-bold">Visualize a local CSV file</h2>
+            <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Choose or drop a CSV in sidebar. Parsing and rendering happen entirely in your browser.</p>
+          </div>
+        </div>
+
+        <div v-else-if="activeSeries.length === 0" class="grid min-h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <div>
+            <h2 class="text-lg font-bold">No data series selected</h2>
+            <p class="mt-2 text-sm text-slate-500">Select one or more series in sidebar to show charts.</p>
+          </div>
+        </div>
+
+        <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SeriesChart
+            v-for="series in activeSeries"
+            :key="series.id"
+            :series="series"
+            :hovered-index="hoveredIndex"
+            :zoom-range="zoomRange"
+            :selected-range="selectedRange"
+            @hover="hoveredIndex = $event"
+            @wheel="zoomBy"
+            @selection="selectedRange = $event"
+            @select="applySelection"
+          />
+        </div>
+      </section>
+    </div>
+
+    <footer class="flex items-center justify-center gap-2 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
+      <ShieldCheck :size="14" class="text-emerald-600" aria-hidden="true" />
+      No uploads, analytics, or external data requests.
+    </footer>
+
+    <div v-if="selectAllWarningCount !== null" class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4" role="presentation">
+      <section class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="select-all-warning-title">
+        <h2 id="select-all-warning-title" class="text-lg font-bold text-slate-900">Select all series?</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          Selecting {{ selectAllWarningCount }} series can slow down rendering and interaction.
+        </p>
+        <div class="mt-6 flex justify-end gap-3">
+          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="selectAllWarningCount = null">No</button>
+          <button class="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800" type="button" @click="confirmSelectAll">Yes, select all</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</template>
+
+<style scoped>
+.chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+</style>
