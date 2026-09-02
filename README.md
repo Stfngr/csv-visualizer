@@ -9,6 +9,7 @@ CSV files are read and parsed in browser memory with `FileReader` and Papa Parse
 ## Features
 
 - Use large central drag-and-drop area or `Choose file` button to import local CSV data.
+- Reject CSV files larger than 25 MB before browser-memory parsing.
 - Parse semicolon- and comma-delimited CSV files with automatic header detection.
 - Support long-form `SECONDS`, `PID`, `VALUE`, `UNITS` data, such as included `example.csv`.
 - Preserve original source time text for chart axis and hover readouts, including leading zeroes and precision.
@@ -51,7 +52,7 @@ npm run test:watch
 
 ## Tests
 
-Unit tests cover CSV parsing, long-form series grouping, source-time label preservation, missing data gaps, generic CSV x-axis selection, parser failures, and CSV upload validation.
+Unit tests cover CSV parsing, long-form series grouping, source-time label preservation, missing data gaps, generic CSV x-axis selection, parser failures, and CSV upload type and 25 MB size validation.
 
 Run once with `npm test`. Run continuously during development with `npm run test:watch`.
 

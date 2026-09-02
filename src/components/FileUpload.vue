@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { FileUp, Upload } from '@lucide/vue'
 
+const maximumFileSize = 25 * 1024 * 1024
+
 const emit = defineEmits<{
   select: [file: File]
   invalid: [message: string]
@@ -18,6 +20,10 @@ function selectFile(file: File | undefined) {
   if (!file) return
   if (!isCsv(file)) {
     emit('invalid', 'Choose a CSV file with a .csv extension.')
+    return
+  }
+  if (file.size > maximumFileSize) {
+    emit('invalid', `File is ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum supported size is 25 MB.`)
     return
   }
   emit('select', file)

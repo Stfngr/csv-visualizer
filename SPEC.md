@@ -46,6 +46,7 @@ Build a single-page web application (SPA) that enables users to upload a local C
 - **F-1.3:** Handle parsing errors gracefully (e.g., malformed CSVs, empty files, non-numeric values) by displaying user-friendly notification toasts/banners.
 - **F-1.4:** Automatically detect whether the first row contains headers.
 - **F-1.5:** Parse both long-form `SECONDS`/`PID`/`VALUE`/`UNITS` data and generic numeric-column CSV data.
+- **F-1.6:** Reject files larger than 25 MB before reading them into browser memory. Error message must show file size and supported limit.
 
 ### 4.2. Data Management & Filtering (Sidebar / Control Panel)
 - **F-2.1:** Display a list of items representing the toggleable data (columns/series) with checkboxes.
@@ -94,7 +95,7 @@ Build a single-page web application (SPA) that enables users to upload a local C
 
 ## 6. Quality Assurance
 
-- **QA-1.1:** Automated unit tests must cover long-form and generic CSV parsing, series grouping, missing values, source-time label preservation, parser failures, and upload file validation.
+- **QA-1.1:** Automated unit tests must cover long-form and generic CSV parsing, series grouping, missing values, source-time label preservation, parser failures, and upload file type and 25 MB size validation.
 - **QA-1.2:** Tests run with Vitest in a jsdom environment using Vue Test Utils for component tests.
 - **QA-1.3:** `npm test` runs tests once; `npm run test:watch` runs them continuously.
 - **QA-1.4:** Before any Git push, `npm test` and `npm run build` must pass against current worktree state. Do not bypass failed verification.
@@ -104,6 +105,7 @@ Build a single-page web application (SPA) that enables users to upload a local C
 ## 7. Edge Cases & Non-Functional Requirements
 
 - **Non-numeric values:** Replace missing or non-numeric values with `null` or `0` to prevent chart rendering crashes.
+- **File size:** Files larger than 25 MB must be rejected before parsing because in-memory CSV and chart data can consume substantially more memory than source file.
 - **Large Datasets (> 50,000 rows):** Implement throttling/debouncing on checkbox changes if rendering latency exceeds 100ms.
 - **Performance:** Initial file parsing of a 10MB CSV should complete under 1.5 seconds.
 - **Portability:** App should build to a static bundle (`index.html`, `bundle.js`, `style.css`) that can be served via any local web server or opened directly.

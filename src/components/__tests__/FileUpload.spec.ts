@@ -31,4 +31,24 @@ describe('FileUpload', () => {
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(wrapper.emitted('invalid')).toEqual([['Choose a CSV file with a .csv extension.']])
   })
+
+  it('accepts CSV files up to 25 MB', async () => {
+    const wrapper = mount(FileUpload)
+    const file = new File([new Uint8Array(25 * 1024 * 1024)], 'data.csv', { type: 'text/csv' })
+
+    await wrapper.trigger('drop', { dataTransfer: { files: [file] } })
+
+    expect(wrapper.emitted('select')).toEqual([[file]])
+    expect(wrapper.emitted('invalid')).toBeUndefined()
+  })
+
+  it('rejects CSV files larger than 25 MB', async () => {
+    const wrapper = mount(FileUpload)
+    const file = new File([new Uint8Array(25 * 1024 * 1024 + 1)], 'data.csv', { type: 'text/csv' })
+
+    await wrapper.trigger('drop', { dataTransfer: { files: [file] } })
+
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('invalid')).toEqual([['File is 25.0 MB. Maximum supported size is 25 MB.']])
+  })
 })
