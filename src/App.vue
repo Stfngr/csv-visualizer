@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { FileSpreadsheet, LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
+import { LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
+import FileUpload from '@/components/FileUpload.vue'
 import SeriesChart from '@/components/SeriesChart.vue'
 import SeriesSidebar from '@/components/SeriesSidebar.vue'
 import { useCsvData } from '@/composables/useCsvData'
@@ -154,8 +155,6 @@ function applySelection(range: { min: number; max: number }) {
         :file-name="fileName"
         :row-count="rowCount"
         :is-loading="isLoading"
-        @import="importData"
-        @invalid="showUploadError"
         @toggle="setSeriesVisibility"
         @toggle-all="handleToggleAll"
       />
@@ -181,12 +180,8 @@ function applySelection(range: { min: number; max: number }) {
           <p class="text-sm font-medium text-slate-600">Reading and parsing CSV locally...</p>
         </div>
 
-        <div v-else-if="!dataset" class="grid min-h-96 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <div>
-            <div class="mx-auto grid size-12 place-items-center rounded-2xl bg-sky-100 text-sky-700"><FileSpreadsheet :size="24" /></div>
-            <h2 class="mt-4 text-lg font-bold">Visualize a local CSV file</h2>
-            <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Choose or drop a CSV in sidebar. Parsing and rendering happen entirely in your browser.</p>
-          </div>
+        <div v-else-if="!dataset" class="min-h-96">
+          <FileUpload class="min-h-96" @select="importData" @invalid="showUploadError" />
         </div>
 
         <div v-else-if="activeSeries.length === 0" class="grid min-h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">

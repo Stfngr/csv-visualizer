@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { CheckCheck, Search, SquareDashedMousePointer } from '@lucide/vue'
-import FileUpload from './FileUpload.vue'
 import type { DataSeries } from '@/types/data'
 
 const props = defineProps<{
@@ -13,8 +12,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  import: [file: File]
-  invalid: [message: string]
   toggle: [id: string, visible: boolean]
   toggleAll: [visible: boolean]
 }>()
@@ -32,9 +29,7 @@ function toggleSeries(id: string, event: Event) {
 
 <template>
   <aside class="flex min-h-0 flex-col border-r border-slate-200 bg-white p-4 lg:w-80 lg:p-5">
-    <FileUpload @select="emit('import', $event)" @invalid="emit('invalid', $event)" />
-
-    <div v-if="fileName" class="mt-4 rounded-xl bg-slate-100 px-3 py-2.5">
+    <div v-if="fileName" class="rounded-xl bg-slate-100 px-3 py-2.5">
       <p class="truncate text-xs font-semibold text-slate-700">{{ fileName }}</p>
       <p class="mt-0.5 text-xs text-slate-500">{{ rowCount.toLocaleString() }} parsed rows</p>
     </div>
@@ -85,7 +80,7 @@ function toggleSeries(id: string, event: Event) {
       </div>
     </template>
 
-    <p v-else-if="!isLoading" class="mt-5 text-sm leading-6 text-slate-500">Import a CSV file to select data series.</p>
+    <p v-else-if="!isLoading" class="text-sm leading-6 text-slate-500">Import a CSV file to select data series.</p>
   </aside>
 </template>
 

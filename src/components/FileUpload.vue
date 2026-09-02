@@ -36,7 +36,7 @@ function onPickerChange(event: Event) {
 
 <template>
   <div
-    class="rounded-2xl border border-dashed p-4 transition"
+    class="grid size-full min-h-96 place-items-center rounded-2xl border border-dashed p-8 text-center transition"
     :class="isDragging ? 'border-sky-500 bg-sky-50' : 'border-slate-300 bg-slate-50'"
     @dragenter.prevent="isDragging = true"
     @dragover.prevent="isDragging = true"
@@ -44,15 +44,15 @@ function onPickerChange(event: Event) {
     @drop.prevent="onDrop"
   >
     <input ref="input" class="hidden" type="file" accept=".csv,text/csv" @change="onPickerChange" />
-    <div class="flex items-start gap-3">
-      <div class="rounded-xl bg-sky-100 p-2 text-sky-700">
-        <FileUp :size="20" aria-hidden="true" />
+    <div>
+      <div class="mx-auto grid size-14 place-items-center rounded-2xl bg-sky-100 text-sky-700">
+        <FileUp :size="26" aria-hidden="true" />
       </div>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold text-slate-800">Import CSV data</p>
-        <p class="mt-1 text-xs leading-5 text-slate-500">Drop file here or browse. Data never leaves this browser.</p>
+      <div class="mt-4">
+        <h2 class="text-lg font-bold text-slate-800">Visualize a local CSV file</h2>
+        <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Drop a CSV file here or choose one from your computer. Data never leaves this browser.</p>
         <button
-          class="mt-3 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+          class="mt-5 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
           type="button"
           @click="input?.click()"
         >

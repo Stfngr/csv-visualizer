@@ -8,9 +8,10 @@ CSV files are read and parsed in browser memory with `FileReader` and Papa Parse
 
 ## Features
 
-- Drag-and-drop or choose a local CSV file.
+- Use large central drag-and-drop area or `Choose file` button to import local CSV data.
 - Parse semicolon- and comma-delimited CSV files with automatic header detection.
 - Support long-form `SECONDS`, `PID`, `VALUE`, `UNITS` data, such as included `example.csv`.
+- Preserve original source time text for chart axis and hover readouts, including leading zeroes and precision.
 - Search, select, deselect, and bulk-select data series.
 - Warn before activating more than 10 additional charts.
 - Render responsive line charts with synchronized crosshair, hover point, and fixed value readouts.
@@ -28,7 +29,7 @@ SECONDS;PID;VALUE;UNITS
 36099.6019245;Eingangsspannung Steuergeraet;14.14;V
 ```
 
-`SECONDS` is formatted as elapsed `HH:mm:ss.SSS`. Each unique `PID` becomes selectable line chart. Missing values render as gaps.
+Each unique `PID` becomes selectable line chart. `SECONDS` remains exactly as supplied in CSV for chart labels and hover readouts; its numeric value is retained internally for zoom, pan, selection, and crosshair synchronization. Missing values render as gaps.
 
 ## Local Development
 
@@ -44,7 +45,19 @@ Other commands:
 ```bash
 npm run build
 npm run preview
+npm test
+npm run test:watch
 ```
+
+## Tests
+
+Unit tests cover CSV parsing, long-form series grouping, source-time label preservation, missing data gaps, generic CSV x-axis selection, parser failures, and CSV upload validation.
+
+Run once with `npm test`. Run continuously during development with `npm run test:watch`.
+
+## Push Requirements
+
+Before pushing changes, run `npm test` and `npm run build` from repository root. Both commands must pass. Project OpenCode skill `.opencode/skills/test-before-push/SKILL.md` enforces this check for OpenCode-assisted pushes.
 
 ## Stack
 
@@ -54,6 +67,7 @@ npm run preview
 - Papa Parse
 - Chart.js and vue-chartjs
 - Lucide Vue icons
+- Vitest, jsdom, and Vue Test Utils
 
 ## GitHub Pages
 

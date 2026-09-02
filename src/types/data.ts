@@ -1,5 +1,6 @@
 export interface DataPoint {
   x: number
+  xLabel: string
   y: number | null
 }
 

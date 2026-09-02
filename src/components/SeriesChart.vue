@@ -70,22 +70,8 @@ const emit = defineEmits<{
 const lineChart = ref<{ chart: ChartJS } | null>(null)
 let dragStartIndex: number | null = null
 
-function formatElapsedTime(seconds: number): string {
-  let wholeSeconds = Math.floor(seconds)
-  let milliseconds = Math.round((seconds - wholeSeconds) * 1000)
-  if (milliseconds === 1000) {
-    wholeSeconds += 1
-    milliseconds = 0
-  }
-
-  const hours = Math.floor(wholeSeconds / 3600)
-  const minutes = Math.floor((wholeSeconds % 3600) / 60)
-  const remainingSeconds = wholeSeconds % 60
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`
-}
-
 const lineData = computed<ChartData<'line'>>(() => ({
-  labels: props.series.points.map((point) => formatElapsedTime(point.x)),
+  labels: props.series.points.map((point) => point.xLabel),
   datasets: [{
     label: props.series.unit ? `${props.series.label} (${props.series.unit})` : props.series.label,
     data: props.series.points.map((point) => point.y),
@@ -248,7 +234,7 @@ onMounted(() => nextTick(() => {
     </div>
     <div class="mt-3 flex min-h-6 items-center gap-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
       <template v-if="hoveredPoint">
-        <span>Time: <strong class="font-semibold text-slate-700">{{ formatElapsedTime(hoveredPoint.x) }}</strong></span>
+        <span>Time: <strong class="font-semibold text-slate-700">{{ hoveredPoint.xLabel }}</strong></span>
         <span>Value: <strong class="font-semibold text-slate-700">{{ formatValue(hoveredPoint.y) }}{{ hoveredPoint.y === null || !series.unit ? '' : ` ${series.unit}` }}</strong></span>
       </template>
       <span v-else>Move pointer over chart to inspect value.</span>

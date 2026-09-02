@@ -63,6 +63,7 @@ function createLongFormSeries(headers: string[], rows: CsvRow[]): DataSeries[] |
 
   const timestamps: number[] = []
   const timestampSet = new Set<number>()
+  const timestampLabels = new Map<number, string>()
   const grouped = new Map<string, { label: string; unit: string | null; values: Map<number, number | null> }>()
 
   for (const row of rows) {
@@ -74,6 +75,7 @@ function createLongFormSeries(headers: string[], rows: CsvRow[]): DataSeries[] |
     if (!timestampSet.has(time)) {
       timestampSet.add(time)
       timestamps.push(time)
+      timestampLabels.set(time, seconds)
     }
 
     const value = row[valueIndex]?.trim()
@@ -88,7 +90,7 @@ function createLongFormSeries(headers: string[], rows: CsvRow[]): DataSeries[] |
     id: series.label,
     label: series.label,
     unit: series.unit,
-    points: timestamps.map((x) => ({ x, y: series.values.get(x) ?? null })),
+    points: timestamps.map((x) => ({ x, xLabel: timestampLabels.get(x) ?? String(x), y: series.values.get(x) ?? null })),
   }))
 }
 
@@ -111,12 +113,13 @@ function createGenericSeries(headers: string[], rows: CsvRow[]): DataSeries[] {
     unit: null,
     points: rows.map((row, rowIndex) => ({
       x: useFirstColumnAsXAxis && isNumeric(row[firstNumeric.index]) ? Number(row[firstNumeric.index]) : rowIndex + 1,
+      xLabel: useFirstColumnAsXAxis ? row[firstNumeric.index] : String(rowIndex + 1),
       y: isNumeric(row[index]) ? Number(row[index]) : null,
     })),
   }))
 }
 
-function createDataset(fileName: string, text: string): ParsedDataset {
+export function createDataset(fileName: string, text: string): ParsedDataset {
   const parsedRows = removeEmptyColumns(parseRows(text))
   const headersPresent = hasHeaderRow(parsedRows)
   const headers = headersPresent
