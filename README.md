@@ -58,7 +58,7 @@ Run once with `npm test`. Run continuously during development with `npm run test
 
 ## Push Requirements
 
-Before pushing changes, run `npm test` and `npm run build` from repository root. Both commands must pass. Project OpenCode skill `.opencode/skills/test-before-push/SKILL.md` enforces this check for OpenCode-assisted pushes.
+Before pushing changes, run `npm test` and `npm run build` from repository root. Both commands must pass. `AGENTS.md` enforces this check for OpenCode-assisted pushes.
 
 ## Stack
 
