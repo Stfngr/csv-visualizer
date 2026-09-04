@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Combine, LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
+import { Combine, Download, LineChart, Minus, Plus, Printer, RotateCcw, ShieldCheck, X } from '@lucide/vue'
 import FileUpload from '@/components/FileUpload.vue'
 import SeriesChart from '@/components/SeriesChart.vue'
 import SeriesSidebar from '@/components/SeriesSidebar.vue'
 import { useCsvData } from '@/composables/useCsvData'
+import { createWideCsv, exportFileName } from '@/utils/csvExport'
 
 const {
   activeSeries,
@@ -119,11 +120,28 @@ function applySelection(range: { min: number; max: number }) {
   zoomRange.value = range
 }
 
+function exportVisibleRange() {
+  if (!dataset.value || allSeries.value.length === 0) return
+
+  const csv = createWideCsv(allSeries.value, currentZoomRange.value)
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = exportFileName(dataset.value.fileName)
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function printCharts() {
+  if (activeSeries.value.length === 0) return
+  window.print()
+}
+
 </script>
 
 <template>
   <main class="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-    <header class="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <header class="app-header flex flex-col gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div class="flex items-center gap-3">
         <div class="rounded-xl bg-slate-900 p-2 text-white"><LineChart :size="22" aria-hidden="true" /></div>
         <div>
@@ -141,6 +159,20 @@ function applySelection(range: { min: number; max: number }) {
           :aria-pressed="isCombinedView"
           @click="isCombinedView = !isCombinedView"
         ><Combine :size="15" /> {{ isCombinedView ? 'Separate charts' : 'Combine charts' }}</button>
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          title="Download all series in current zoom range"
+          :disabled="!dataset"
+          @click="exportVisibleRange"
+        ><Download :size="15" /> Export range</button>
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          title="Print visible charts in current zoom range"
+          :disabled="activeSeries.length === 0"
+          @click="printCharts"
+        ><Printer :size="15" /> Print charts</button>
         <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
           <button class="chart-toggle" type="button" title="Zoom in" :disabled="maxIndex < 1" @click="zoomBy(1.25)"><Plus :size="15" /> Zoom in</button>
           <button class="chart-toggle" type="button" title="Zoom out" :disabled="maxIndex < 1" @click="zoomBy(0.8)"><Minus :size="15" /> Zoom out</button>
@@ -167,6 +199,7 @@ function applySelection(range: { min: number; max: number }) {
 
     <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
       <SeriesSidebar
+        class="app-sidebar"
         :series="allSeries"
         :visibility="visibleSeries"
         :file-name="fileName"
@@ -176,8 +209,8 @@ function applySelection(range: { min: number; max: number }) {
         @toggle-all="handleToggleAll"
       />
 
-      <section class="min-w-0 flex-1 p-4 sm:p-6">
-        <div v-if="dataset && activeSeries.length && isZoomed" class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <section class="chart-content min-w-0 flex-1 p-4 sm:p-6" :class="{ 'print-combined': isCombinedView }">
+        <div v-if="dataset && activeSeries.length && isZoomed" class="timeline-control mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div class="mb-2 flex items-center justify-between gap-4 text-xs font-medium text-slate-500">
             <span>Timeline position</span>
             <span>{{ currentZoomRange.min.toLocaleString() }} - {{ currentZoomRange.max.toLocaleString() }}</span>
@@ -241,7 +274,7 @@ function applySelection(range: { min: number; max: number }) {
       </section>
     </div>
 
-    <footer class="flex items-center justify-center gap-2 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
+    <footer class="app-footer flex items-center justify-center gap-2 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
       <ShieldCheck :size="14" class="text-emerald-600" aria-hidden="true" />
       No uploads, analytics, or external data requests.
     </footer>
@@ -271,6 +304,48 @@ function applySelection(range: { min: number; max: number }) {
   color: #64748b;
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+@media print {
+  :global(@page) {
+    size: landscape;
+    margin: 12mm;
+  }
+
+  .app-header,
+  .app-sidebar,
+  .app-footer,
+  .timeline-control,
+  :global([role="alert"]),
+  :global([role="dialog"]),
+  :global([aria-label="Resize combined chart"]) {
+    display: none !important;
+  }
+
+  main {
+    display: block;
+    min-height: 0;
+    background: white;
+  }
+
+  .chart-content {
+    padding: 0;
+  }
+
+  :global(.chart-content > .grid) {
+    display: block;
+  }
+
+  :global(.chart-content article) {
+    height: 82mm !important;
+    margin: 0 0 6mm;
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .print-combined :global(article) {
+    height: 170mm !important;
+  }
 }
 
 </style>
