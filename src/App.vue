@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
+import { Combine, LineChart, Minus, Plus, RotateCcw, ShieldCheck, X } from '@lucide/vue'
 import FileUpload from '@/components/FileUpload.vue'
 import SeriesChart from '@/components/SeriesChart.vue'
 import SeriesSidebar from '@/components/SeriesSidebar.vue'
@@ -24,7 +24,10 @@ const allSeries = computed(() => dataset.value?.series ?? [])
 const hoveredIndex = ref<number | null>(null)
 const zoomRange = ref<{ min: number; max: number } | null>(null)
 const selectedRange = ref<{ min: number; max: number } | null>(null)
+const isCombinedView = ref(false)
+const combinedChartHeight = ref(480)
 const selectAllWarningCount = ref<number | null>(null)
+const activeSeriesKey = computed(() => activeSeries.value.map((series) => series.id).join('|'))
 const maxIndex = computed(() => Math.max(0, (allSeries.value[0]?.points.length ?? 1) - 1))
 const currentZoomRange = computed(() => zoomRange.value ?? { min: 0, max: maxIndex.value })
 const zoomSpan = computed(() => currentZoomRange.value.max - currentZoomRange.value.min)
@@ -39,6 +42,8 @@ function resetData() {
   hoveredIndex.value = null
   zoomRange.value = null
   selectedRange.value = null
+  isCombinedView.value = false
+  combinedChartHeight.value = 480
   selectAllWarningCount.value = null
   reset()
 }
@@ -47,6 +52,8 @@ async function importData(file: File) {
   hoveredIndex.value = null
   zoomRange.value = null
   selectedRange.value = null
+  isCombinedView.value = false
+  combinedChartHeight.value = 480
   selectAllWarningCount.value = null
   await importFile(file)
 }
@@ -111,6 +118,7 @@ function applySelection(range: { min: number; max: number }) {
   selectedRange.value = range
   zoomRange.value = range
 }
+
 </script>
 
 <template>
@@ -124,6 +132,15 @@ function applySelection(range: { min: number; max: number }) {
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+          :class="isCombinedView ? 'border-sky-700 bg-sky-700 text-white hover:bg-sky-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'"
+          type="button"
+          title="Show all selected series in one chart"
+          :disabled="activeSeries.length === 0"
+          :aria-pressed="isCombinedView"
+          @click="isCombinedView = !isCombinedView"
+        ><Combine :size="15" /> {{ isCombinedView ? 'Separate charts' : 'Combine charts' }}</button>
         <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
           <button class="chart-toggle" type="button" title="Zoom in" :disabled="maxIndex < 1" @click="zoomBy(1.25)"><Plus :size="15" /> Zoom in</button>
           <button class="chart-toggle" type="button" title="Zoom out" :disabled="maxIndex < 1" @click="zoomBy(0.8)"><Minus :size="15" /> Zoom out</button>
@@ -191,11 +208,27 @@ function applySelection(range: { min: number; max: number }) {
           </div>
         </div>
 
+        <SeriesChart
+          v-else-if="isCombinedView"
+          :key="`combined:${activeSeriesKey}`"
+          :series="activeSeries"
+          combined
+          :height="combinedChartHeight"
+          :hovered-index="hoveredIndex"
+          :zoom-range="zoomRange"
+          :selected-range="selectedRange"
+          @hover="hoveredIndex = $event"
+          @wheel="zoomBy"
+          @selection="selectedRange = $event"
+          @select="applySelection"
+          @resize="combinedChartHeight = $event"
+        />
+
         <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <SeriesChart
             v-for="series in activeSeries"
-            :key="series.id"
-            :series="series"
+            :key="`separate:${series.id}`"
+            :series="[series]"
             :hovered-index="hoveredIndex"
             :zoom-range="zoomRange"
             :selected-range="selectedRange"
