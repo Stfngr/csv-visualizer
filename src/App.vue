@@ -124,12 +124,39 @@ function exportVisibleRange() {
   if (!dataset.value || allSeries.value.length === 0) return
 
   const csv = createWideCsv(allSeries.value, currentZoomRange.value)
+  const fileName = exportFileName(dataset.value.fileName)
+
+  if ('showSaveFilePicker' in window) {
+    void saveCsvWithPicker(csv, fileName)
+    return
+  }
+
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = exportFileName(dataset.value.fileName)
+  link.download = fileName
   link.click()
   URL.revokeObjectURL(url)
+}
+
+async function saveCsvWithPicker(csv: string, suggestedName: string) {
+  try {
+    const showSaveFilePicker = window.showSaveFilePicker
+    if (!showSaveFilePicker) return
+    const handle = await showSaveFilePicker({
+      suggestedName,
+      types: [{
+        description: 'CSV file',
+        accept: { 'text/csv': ['.csv'] },
+      }],
+    })
+    const stream = await handle.createWritable()
+    await stream.write(csv)
+    await stream.close()
+  } catch (reason) {
+    if (reason instanceof DOMException && reason.name === 'AbortError') return
+    error.value = 'Could not save the CSV file.'
+  }
 }
 
 function printCharts() {
